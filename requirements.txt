@@ -1,0 +1,6 @@
+openai
+elevenlabs
+text2emotion
+pydub
+ffmpeg-python
+python-dotenv
