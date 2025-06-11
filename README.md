@@ -54,6 +54,18 @@ VOICE_ID=your_elevenlabs_voice_id
 
 GEMINI_API_KEY=your_gemini_api_key
 
+### 📌 Extra Setup Notes:
+FFmpeg must be installed system-wide (ffmpeg command must work in terminal).
+
+NLTK used by text2emotion, so ensure this is added to your Python setup:
+
+```bash
+import nltk
+nltk.download('omw-1.4')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger')
+```
+
 ## Use your modular scripts to:
 
 ```bash
