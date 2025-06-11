@@ -48,9 +48,9 @@ python -c "import nltk; nltk.download('omw-1.4'); nltk.download('wordnet'); nltk
 
 ## .env
 
-API_KEY=your_elevenlabs_api_key
-VOICE_ID=your_elevenlabs_voice_id
-GEMINI_API_KEY=your_gemini_api_key
+-API_KEY=your_elevenlabs_api_key
+-VOICE_ID=your_elevenlabs_voice_id
+-GEMINI_API_KEY=your_gemini_api_key
 
 ## Use your modular scripts to:
 
