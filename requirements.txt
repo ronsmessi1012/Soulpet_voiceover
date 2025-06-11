@@ -1,6 +1,13 @@
-openai
-elevenlabs
+openai-whisper
 text2emotion
-pydub
-ffmpeg-python
+requests
 python-dotenv
+ffmpeg-python
+google-generativeai
+pydub
+torch
+regex
+tqdm
+six
+emoji
+nltk
