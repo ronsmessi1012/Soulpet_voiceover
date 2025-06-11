@@ -77,3 +77,21 @@ python speak_pet_py
 ```bash
 python main.py
 ```
+### directory strucure
+```
+Soulpet_voiceover/
+├── src/
+│   ├── audio/
+│   ├── sfx/
+|   |   ├── bark.mp3
+|   |   ├── growl.mp3
+|   |   ├── whimper.mp3
+│   ├── record_audio.py
+│   ├── transcribe_whisper.py
+│   ├── detect_emotion.py
+│   ├── generate_pet_reply.py
+│   ├── .env
+│   └── speak_pet.py
+├── requirements.txt
+└── README.md
+```
