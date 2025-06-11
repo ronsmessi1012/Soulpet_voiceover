@@ -23,7 +23,7 @@
 - [Text2Emotion](https://github.com/oo92/text2emotion)
 - [OpenAI](https://platform.openai.com/)
 - [ElevenLabs TTS](https://www.elevenlabs.io/)
-- [Ffmpeg]([https://www.elevenlabs.io/](https://ffmpeg.org/download.html#build-windows))
+- [Ffmpeg](https://ffmpeg.org/download.html#build-windows)
 - `ffmpeg-python`, `pydub`, `dotenv`, `requests`
 
 ---
