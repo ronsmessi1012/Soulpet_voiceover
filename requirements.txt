@@ -12,3 +12,6 @@ six
 emoji==1.7.0
 nltk
 uvicorn
+fastapi
+elevenlabs
+dotenv
