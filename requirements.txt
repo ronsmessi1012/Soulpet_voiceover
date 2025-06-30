@@ -9,6 +9,5 @@ torch
 regex
 tqdm
 six
-emoji
+emoji==1.7.0
 nltk
-uvicorn
