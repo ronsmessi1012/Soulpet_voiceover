@@ -60,3 +60,7 @@ async def voice_chat(audio: UploadFile, voice_type: str = Form(...)):
     )
 
     return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=10000)
