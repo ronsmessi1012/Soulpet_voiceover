@@ -1,106 +1,96 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import tempfile
-import subprocess
-import whisper
-import text2emotion as te
+from pydantic import BaseModel
+from elevenlabs import generate, save, VoiceSettings, Voice, set_api_key
 import google.generativeai as genai
 import os
 import uuid
-import requests
+from dotenv import load_dotenv
 
-# Load keys
 load_dotenv()
-GEN_AI_API_KEY = os.getenv("GEMINI_API_KEY")
-ELEVEN_API_KEY = os.getenv("API_KEY")
-VOICE_ID = os.getenv("VOICE_ID")
 
-genai.configure(api_key=GEN_AI_API_KEY)
+# ENV setup
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+set_api_key(os.getenv("ELEVEN_API_KEY"))
 
-# Init FastAPI
+# FastAPI setup
 app = FastAPI()
-
-# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Use your frontend URL here in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
-# Whisper Transcription
-def transcribe_audio(path):
-    model = whisper.load_model("base")
-    result = model.transcribe(path)
-    return result["text"]
+class ChatRequest(BaseModel):
+    user_input: str
+    context: dict
+    voice_response: bool
 
-# Emotion Detection
-def detect_emotion(text):
-    emotions = te.get_emotion(text)
-    if not emotions:
-        return "Neutral"
-    dominant = max(emotions, key=emotions.get)
-    return dominant if emotions[dominant] > 0 else "Neutral"
-
-# Gemini Pet Reply
-def generate_pet_reply(text, emotion):
-    prompt = f """
-You are a cute, talking pet that emotionally responds to your human.
-Emotion detected: {emotion}
-Human said: "{text}"
-Reply like a loving pet would. Be expressive and emotionally in sync with the human. Keep it short, sweet, and natural.
-"""
-
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    response = model.generate_content(prompt)
-    return response.text.strip()
-
-# ElevenLabs TTS
-def generate_tts_audio(text):
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
-    headers = {
-        "xi-api-key": ELEVEN_API_KEY,
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "text": text,
-        "model_id": "eleven_monolingual_v1",
-        "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.7
-        }
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code != 200:
-        raise Exception(f"TTS failed: {response.text}")
-
-    # Return as byte stream (in-memory)
-    return response.content
-
-# 🔊 Main route
-@app.post("/voice-chat")
-async def voice_chat(file: UploadFile = File(...)):
+@app.post("/chat")
+async def chat_handler(req: ChatRequest):
     try:
-        # Save audio
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-            tmp.write(await file.read())
-            tmp_path = tmp.name
+        # Step 1: Format prompt
+        pet_name = req.context.get("petName", "Pet")
+        pet_type = req.context.get("petType", "")
+        personality = req.context.get("personality", "")
+        mood = req.context.get("mood", "")
+        chat_history = req.context.get("chatHistory", [])
 
-        # Process voice
-        user_text = transcribe_audio(tmp_path)
-        emotion = detect_emotion(user_text)
-        pet_reply = generate_pet_reply(user_text, emotion)
-        audio_bytes = generate_tts_audio(pet_reply)
+        history_str = ""
+        for msg in chat_history:
+            if msg["type"] == "user":
+                history_str += f"You: {msg.get('message', '')}\n"
+            else:
+                history_str += f"{pet_name}: {msg.get('message', '')}\n"
 
-        # Return MP3 as stream
-        return StreamingResponse(
-            iter([audio_bytes]),
-            media_type="audio/mpeg"
+        prompt = f """
+You are {pet_name}, a {personality} {pet_type}. Your current mood is: {mood}.
+
+Reply to the user like you're their emotional pet. Keep it expressive, short, and emotional.
+
+Recent chat:
+{history_str}
+
+User says: "{req.user_input}"
+""".strip()
+
+        # Step 2: Generate reply using Gemini
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content(prompt)
+        reply = response.text.strip()
+
+        if not reply:
+            reply = "I'm here with you! 💕"
+
+        # Step 3: Return text only if not voice
+        if not req.voice_response:
+            return { "reply": reply, "emotion": mood }
+
+        # Step 4: Generate ElevenLabs audio
+        audio = generate(
+            text=reply,
+            voice=Voice(
+                voice_id="EXAVITQu4vr4xnSDxMaL",  # Replace with your default voice ID
+                settings=VoiceSettings(
+                    stability=0.5,
+                    similarity_boost=0.75,
+                    style=0.5,
+                    use_speaker_boost=True
+                )
+            )
         )
 
+        filename = f"voice_{uuid.uuid4().hex}.mp3"
+        path = f"static/{filename}"
+        os.makedirs("static", exist_ok=True)
+        save(audio, path)
+
+        return {
+            "audio_url": f"https://soulpet-chatbot-2.onrender.com/{path}",
+            "emotion": mood
+        }
+
     except Exception as e:
-        return {"error": str(e)}
+        return { "reply": "Something went wrong 💔", "error": str(e) }
